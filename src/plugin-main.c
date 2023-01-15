@@ -22,7 +22,13 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 
 #include "plugin-macros.generated.h"
 
-static void pokemon_sv_plugin_recognize_hotkey(
+struct filter_context {
+	obs_source_t *source;
+	obs_hotkey_id recognize_hotkey_id;
+	gs_texrender_t *texrender;
+};
+
+static void recognize_hotkey(
 	void *data,
 	obs_hotkey_id id,
 	obs_hotkey_t *hotkey,
@@ -69,6 +75,75 @@ static void hotkey_changed(void *data, calldata_t *cd) {
 	}
 }
 
+
+static const char *filter_get_name(void *unused)
+{
+	UNUSED_PARAMETER(unused);
+	return "Pokemon SV Plugin";
+}
+
+static void filter_video_render(void *data, gs_effect_t *effect)
+{
+	UNUSED_PARAMETER(effect);
+	struct filter_context *context = data;
+	obs_source_skip_video_filter(context->source);
+}
+
+static void *filter_create(obs_data_t *settings, obs_source_t *source)
+{
+	UNUSED_PARAMETER(settings);
+	struct filter_context *context = bzalloc(sizeof(struct filter_context));
+	context->source = source;
+
+    context->recognize_hotkey_id = OBS_INVALID_HOTKEY_PAIR_ID;
+
+	context->texrender = gs_texrender_create(GS_BGRA, GS_ZS_NONE);
+	// context->enableHotkey = OBS_INVALID_HOTKEY_PAIR_ID;
+	// source_record_filter_update(context, settings);
+	// obs_add_main_render_callback(source_record_filter_offscreen_render,
+	// 			     context);
+	// obs_frontend_add_event_callback(frontend_event, context);
+	return context;
+}
+
+static void filter_video_tick(void *data, float seconds) {
+	UNUSED_PARAMETER(seconds);
+	struct filter_context *context = data;
+
+	obs_source_t *parent = obs_filter_get_parent(context->source);
+	if (!parent) {
+		return;
+	}
+
+	if (context->recognize_hotkey_id == OBS_INVALID_HOTKEY_PAIR_ID) {
+		context->recognize_hotkey_id = obs_hotkey_register_source(
+			parent,
+			"obs-pokemon-sv-plugin.recognize",
+			"Recognize Team",
+			recognize_hotkey,
+			context);
+	}
+
+	gs_texrender_reset(filter->texrender);
+
+	if (!gs_texrender_begin(filter->texrender, 1920, 1080)) {
+		return;
+	}
+	obs_source_video_render(parent);
+	gs_texrender_end(filter->texrender);
+
+}
+
+struct obs_source_info filter_info = {
+	.id = "obs-pokemon-sv-plugin",
+	.type = OBS_SOURCE_TYPE_FILTER,
+	.output_flags = OBS_SOURCE_VIDEO,
+	.get_name = filter_get_name,
+	.create = filter_create,
+	.video_render = filter_video_render,
+	.video_tick = filter_video_tick,
+};
+
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
@@ -77,20 +152,7 @@ bool obs_module_load(void)
 	blog(LOG_INFO, "plugin loaded successfully (version %s)",
 	     PLUGIN_VERSION);
 
-	obs_data_t *context = load_context();
-
-	signal_handler_t *handler = obs_get_signal_handler();
-	signal_handler_connect(handler, "hotkey_bindings_changed", hotkey_changed, context);
-
-	recognize_hotkey_id = obs_hotkey_register_frontend(
-		"obs-pokemon-sv-plugin.recognize",
-		"Recognize Team",
-		pokemon_sv_plugin_recognize_hotkey,
-		context);
-	obs_data_array_t *recognize_hotkey_array = obs_data_get_array(context, CONTEXT_HOTKEY_RECOGNIZE);
-	if (obs_data_array_count(recognize_hotkey_array) != 0) {
-		obs_hotkey_load(recognize_hotkey_id, recognize_hotkey_array);
-	}
+	obs_register_source(&filter_info);
 
 	return true;
 }
