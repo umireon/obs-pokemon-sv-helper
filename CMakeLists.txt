@@ -32,9 +32,17 @@ add_dependencies(pokemon-detector-sv pokemon-detector-sv-download)
 set_target_properties(pokemon-detector-sv PROPERTIES IMPORTED_LOCATION ${INSTALL_DIR}/lib/libpokemon-detector-sv.a)
 include_directories(${INSTALL_DIR}/include)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+  stdc++
   pokemon-detector-sv
+  ${INSTALL_DIR}/lib/liblibpng${CMAKE_STATIC_LIBRARY_SUFFIX}
   ${INSTALL_DIR}/lib/libopencv_core${CMAKE_STATIC_LIBRARY_SUFFIX}
+  ${INSTALL_DIR}/lib/libopencv_imgcodecs${CMAKE_STATIC_LIBRARY_SUFFIX}
+  ${INSTALL_DIR}/lib/libopencv_imgproc${CMAKE_STATIC_LIBRARY_SUFFIX}
+  ${INSTALL_DIR}/lib/libzlib${CMAKE_STATIC_LIBRARY_SUFFIX}
   )
+if(APPLE)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "-framework Accelerate")
+endif(APPLE)
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c)
 
