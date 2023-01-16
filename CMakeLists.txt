@@ -14,6 +14,21 @@ set(LINUX_MAINTAINER_EMAIL "umireon@gmail.com")
 
 # Add your custom source files here - header files are optional and only required for visibility
 # e.g. in Xcode or Visual Studio
+include(ExternalProject)
+ExternalProject_Add(pokemon-detector-sv-download
+  URL https://github.com/umireon/pokemon-detector-sv/archive/refs/heads/main.zip
+  BUILD_BYPRODUCTS <INSTALL_DIR>/lib/libpokemon-detector-sv.a
+  CMAKE_ARGS
+    -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+    -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+)
+
+ExternalProject_Get_Property(pokemon-detector-sv-download INSTALL_DIR)
+add_library(pokemon-detector-sv STATIC IMPORTED)
+set_target_properties(pokemon-detector-sv PROPERTIES IMPORTED_LOCATION ${INSTALL_DIR}/lib/libpokemon-detector-sv.a)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE pokemon-detector-sv)
+add_dependencies(pokemon-detector-sv pokemon-detector-sv-download)
+
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c)
 
 # Import libobs as main plugin dependency
