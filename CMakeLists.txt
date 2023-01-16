@@ -26,6 +26,9 @@ ExternalProject_Add(pokemon-detector-sv-download
 ExternalProject_Get_Property(pokemon-detector-sv-download INSTALL_DIR)
 add_library(pokemon-detector-sv STATIC IMPORTED)
 set_target_properties(pokemon-detector-sv PROPERTIES IMPORTED_LOCATION ${INSTALL_DIR}/lib/libpokemon-detector-sv.a)
+set_target_properties(pokemon-detector-sv PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES ${INSTALL_DIR}/include
+)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE pokemon-detector-sv)
 add_dependencies(pokemon-detector-sv pokemon-detector-sv-download)
 
