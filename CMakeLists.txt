@@ -17,7 +17,10 @@ set(LINUX_MAINTAINER_EMAIL "umireon@gmail.com")
 include(ExternalProject)
 ExternalProject_Add(pokemon-detector-sv-download
   URL https://github.com/umireon/pokemon-detector-sv/archive/refs/heads/main.zip
-  BUILD_BYPRODUCTS <INSTALL_DIR>/lib/libpokemon-detector-sv.a
+  CMAKE_GENERATOR Ninja
+  BUILD_BYPRODUCTS
+    <INSTALL_DIR>/lib/libpokemon-detector-sv.a
+    <INSTALL_DIR>/include
   CMAKE_ARGS
     -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
@@ -25,12 +28,13 @@ ExternalProject_Add(pokemon-detector-sv-download
 
 ExternalProject_Get_Property(pokemon-detector-sv-download INSTALL_DIR)
 add_library(pokemon-detector-sv STATIC IMPORTED)
-set_target_properties(pokemon-detector-sv PROPERTIES IMPORTED_LOCATION ${INSTALL_DIR}/lib/libpokemon-detector-sv.a)
-set_target_properties(pokemon-detector-sv PROPERTIES
-    INTERFACE_INCLUDE_DIRECTORIES ${INSTALL_DIR}/include
-)
-target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE pokemon-detector-sv)
 add_dependencies(pokemon-detector-sv pokemon-detector-sv-download)
+set_target_properties(pokemon-detector-sv PROPERTIES IMPORTED_LOCATION ${INSTALL_DIR}/lib/libpokemon-detector-sv.a)
+include_directories(${INSTALL_DIR}/include)
+target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
+  pokemon-detector-sv
+  ${INSTALL_DIR}/lib/libopencv_core${CMAKE_STATIC_LIBRARY_SUFFIX}
+  )
 
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c)
 

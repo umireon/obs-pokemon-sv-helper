@@ -22,10 +22,13 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 
 #include "plugin-macros.generated.h"
 
+#include <pokemon-detector-sv.h>
+
 struct filter_context {
 	obs_source_t *source;
 	obs_hotkey_id recognize_hotkey_id;
 	gs_texrender_t *texrender;
+	struct pokemon_detector_sv_context *detector_context;
 };
 
 static void recognize_hotkey(
@@ -103,6 +106,8 @@ static void *filter_create(obs_data_t *settings, obs_source_t *source)
 	// obs_add_main_render_callback(source_record_filter_offscreen_render,
 	// 			     context);
 	// obs_frontend_add_event_callback(frontend_event, context);
+	
+	context->detector_context = pokemon_detector_sv_create(pokemon_detector_sv_default_config);
 	return context;
 }
 
@@ -124,13 +129,6 @@ static void filter_video_tick(void *data, float seconds) {
 			context);
 	}
 
-	gs_texrender_reset(filter->texrender);
-
-	if (!gs_texrender_begin(filter->texrender, 1920, 1080)) {
-		return;
-	}
-	obs_source_video_render(parent);
-	gs_texrender_end(filter->texrender);
 
 }
 
