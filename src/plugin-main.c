@@ -26,9 +26,10 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 #include <pokemon-detector-sv.h>
 
 enum filter_state {
-	STATE_UNDEFINED,
+	STATE_UNKNOWN,
 	STATE_ENTERING_SELECT,
 	STATE_SELECT,
+	STATE_MATCH,
 };
 
 struct filter_context {
@@ -40,7 +41,7 @@ struct filter_context {
 	struct pokemon_detector_sv_context *detector_context;
 	obs_data_t *settings;
 	bool started;
-	int width, height;
+	uint32_t width, height;
 	enum filter_state state;
 	uint64_t last_state_change_ns;
 };
@@ -67,16 +68,29 @@ static void filter_main_render_callback(void *data, uint32_t cx, uint32_t cy) {
 	obs_source_video_render(parent);
 	gs_texrender_end(context->texrender);
 
+	uint32_t stagesurface_width = gs_stagesurface_get_width(context->stagesurface);
+	uint32_t stagesurface_height = gs_stagesurface_get_height(context->stagesurface);
+	if (context->stagesurface && (stagesurface_width != width || stagesurface_height != height)) {
+		gs_stagesurface_destroy(context->stagesurface);
+		context->stagesurface = NULL;
+	}
 	if (context->stagesurface == NULL) {
 		context->stagesurface = gs_stagesurface_create(width, height, GS_BGRA);
 	}
+	if (context->video_data && (context->width != width || context->height != height)) {
+		bfree(context->video_data);
+		context->video_data = NULL;
+	}
 	if (context->video_data == NULL) {
 		context->video_data = bzalloc(width * height * 4);
+		context->width = width;
+		context->height = height;
 	}
 	gs_stage_texture(context->stagesurface, gs_texrender_get_texture(context->texrender));
 	uint8_t *stagesurface_data;
 	uint32_t linesize;
 	if (!gs_stagesurface_map(context->stagesurface, &stagesurface_data, &linesize)) return;
+	blog(LOG_INFO, "%d %d\n", width, height);
 	if (stagesurface_data && linesize) {
 		if (width * 4 == linesize) {
 			memcpy(context->video_data, stagesurface_data, width * height * 4);
@@ -127,6 +141,30 @@ static void filter_destroy(void *data) {
 	bfree(context);
 }
 
+static void write_stream_files(struct filter_context *context) {
+	const char *stream_path = obs_data_get_string(context->settings, "stream_path");
+	const char *stream_prefix = obs_data_get_string(context->settings, "stream_prefix");
+	for (int i = 0; i < 6; i++) {
+		char stream_format[512];
+		snprintf(stream_format, sizeof(stream_format), "%s-%d", stream_prefix, i + 1);
+		char *stream_filename = os_generate_formatted_filename("png", true, stream_format);
+		pokemon_detector_sv_export_opponent_pokemon_image(context->detector_context, i, stream_path, stream_filename);
+		bfree(stream_filename);
+	}
+}
+
+static void write_log_files(struct filter_context *context) {
+	const char *log_path = obs_data_get_string(context->settings, "log_path");
+	const char *log_prefix = obs_data_get_string(context->settings, "log_prefix");
+	for (int i = 0; i < 6; i++) {
+		char log_format[512];
+		snprintf(log_format, sizeof(log_format), "%s-%d", log_prefix, i + 1);
+		char *log_filename = os_generate_formatted_filename("png", true, log_format);
+		pokemon_detector_sv_export_opponent_pokemon_image(context->detector_context, i, log_path, log_filename);
+		bfree(log_filename);
+	}
+}
+
 static void filter_video_tick(void *data, float seconds) {
 	UNUSED_PARAMETER(seconds);
 	struct filter_context *context = data;
@@ -139,7 +177,7 @@ static void filter_video_tick(void *data, float seconds) {
 	if (!context->started) return;
 
 	const enum pokemon_detector_sv_scene scene = pokemon_detector_sv_detect_scene(context->detector_context);
-	if (context->state == STATE_UNDEFINED) {
+	if (context->state == STATE_UNKNOWN) {
 		if (scene == POKEMON_DETECTOR_SV_SCENE_SELECT) {
 			context->state = STATE_ENTERING_SELECT;
 			context->last_state_change_ns = obs_get_video_frame_time();
@@ -148,31 +186,13 @@ static void filter_video_tick(void *data, float seconds) {
 		const uint64_t frame_time_ns = obs_get_video_frame_time();
 		if (frame_time_ns - context->last_state_change_ns > 1000000000) {
 			pokemon_detector_sv_crop_opponent_pokemons(context->detector_context);
-			const char *stream_path = obs_data_get_string(context->settings, "stream_path");
-			const char *stream_prefix = obs_data_get_string(context->settings, "stream_prefix");
-
-			for (int i = 0; i < 6; i++) {
-				char stream_format[512];
-				snprintf(stream_format, sizeof(stream_format), "%s-%d", stream_prefix, i + 1);
-				char *stream_filename = os_generate_formatted_filename("png", true, stream_format);
-				pokemon_detector_sv_export_opponent_pokemon_image(context->detector_context, i, stream_path, stream_filename);
-				bfree(stream_filename);
-			}
-
-			const char *log_path = obs_data_get_string(context->settings, "log_path");
-			const char *log_prefix = obs_data_get_string(context->settings, "log_prefix");
-			for (int i = 0; i < 6; i++) {
-				char log_format[512];
-				snprintf(log_format, sizeof(log_format), "%s-%d", log_prefix, i + 1);
-				char *log_filename = os_generate_formatted_filename("png", true, log_format);
-				pokemon_detector_sv_export_opponent_pokemon_image(context->detector_context, i, log_path, log_filename);
-				bfree(log_filename);
-			}
+			write_stream_files(context);
+			write_log_files(context);
 			context->state = STATE_SELECT;
 		}
 	} else if (context->state == STATE_SELECT) {
-		if (scene == POKEMON_DETECTOR_SV_SCENE_UNDEFINED) {
-			context->state = STATE_UNDEFINED;
+		if (scene == POKEMON_DETECTOR_SV_SCENE_BLACK_TRANSITION) {
+			context->state = STATE_UNKNOWN;
 		}
 	}
 }
