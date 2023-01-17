@@ -25,102 +25,67 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 
 #include <pokemon-detector-sv.h>
 
+enum filter_state {
+	STATE_UNDEFINED,
+	STATE_ENTERING_SELECT,
+	STATE_SELECT,
+};
+
 struct filter_context {
 	obs_source_t *source;
 	obs_hotkey_id recognize_hotkey_id;
 	gs_texrender_t *texrender;
+	gs_stagesurf_t *stagesurface;
+	uint8_t *video_data;
 	struct pokemon_detector_sv_context *detector_context;
 	obs_data_t *settings;
+	bool started;
+	int width, height;
+	enum filter_state state;
+	uint64_t last_state_change_ns;
 };
 
-static void recognize_hotkey(
-	void *data,
-	obs_hotkey_id id,
-	obs_hotkey_t *hotkey,
-	bool pressed)
-{
-	UNUSED_PARAMETER(id);
-	UNUSED_PARAMETER(hotkey);
-	if (!pressed) return;
-
-	blog(LOG_INFO, "hotkey");
+static void filter_main_render_callback(void *data, uint32_t cx, uint32_t cy) {
+	UNUSED_PARAMETER(cx);
+	UNUSED_PARAMETER(cy);
+	UNUSED_PARAMETER(data);
 
 	struct filter_context *context = (struct filter_context*)data;
+	if (!obs_source_enabled(context->source))
+		return;
 	obs_source_t *parent = obs_filter_get_parent(context->source);
+	if (!parent || obs_source_removed(parent))
+		return;
 	const uint32_t width = obs_source_get_width(parent);
 	const uint32_t height = obs_source_get_height(parent);
 
-	obs_enter_graphics();
-	context->texrender = gs_texrender_create(GS_BGRA, GS_ZS_NONE);
+	if (width == 0 || height == 0) return;
+
 	gs_texrender_reset(context->texrender);
-	blog(LOG_INFO, "hotkey2");
-	if (!gs_texrender_begin(context->texrender, width, height)) {
-		obs_leave_graphics();
-		return;
-	}
-
+	if (!gs_texrender_begin(context->texrender, width, height)) return;
 	gs_ortho(0.0f, (float)width, 0.0f, (float)height, -100.0f, 100.0f);
-
-	blog(LOG_INFO, "hotkey3");
 	obs_source_video_render(parent);
 	gs_texrender_end(context->texrender);
 
-	gs_stagesurf_t *stagesurface = gs_stagesurface_create(
-			width, height, GS_BGRA);;
-	gs_stage_texture(stagesurface, gs_texrender_get_texture(context->texrender));
-	uint8_t *video_data;
+	if (context->stagesurface == NULL) {
+		context->stagesurface = gs_stagesurface_create(width, height, GS_BGRA);
+	}
+	if (context->video_data == NULL) {
+		context->video_data = bzalloc(width * height * 4);
+	}
+	gs_stage_texture(context->stagesurface, gs_texrender_get_texture(context->texrender));
+	uint8_t *stagesurface_data;
 	uint32_t linesize;
-
-	blog(LOG_INFO, "hotkey4");
-	if (!gs_stagesurface_map(stagesurface, &video_data, &linesize)) {
-		return;
+	if (!gs_stagesurface_map(context->stagesurface, &stagesurface_data, &linesize)) return;
+	if (stagesurface_data && linesize) {
+		if (width * 4 == linesize) {
+			memcpy(context->video_data, stagesurface_data, width * height * 4);
+		}
 	}
-	blog(LOG_INFO, "hotkey5");
+	gs_stagesurface_unmap(context->stagesurface);
 
-	uint8_t *raw_image = bzalloc(width * height * 4);
-
-	if (video_data && linesize) {
-		memcpy(raw_image, video_data, width * height * 4);
-        // for (size_t i = 0; i < height; ++i) {
-        //     const size_t dst_offset = height * i * 4;
-        //     const size_t src_offset = linesize * i;
-		// 	printf("%zu\n", dst_offset);
-		// 	printf("%zu\n", src_offset);
-		// 	printf("%u\n", linesize);
-        //     for (size_t j = 0; j < width; ++j) {
-		// 		for (size_t k = 0; k < 4; k++) {
-		// 			raw_image[width * j + i * 4 + k] = video_data[src_offset + j * 4 + k];
-		// 		}
-        //     }
-        // }
-	}
-	obs_leave_graphics();
-
-	pokemon_detector_sv_load_screen(context->detector_context, raw_image);
-	pokemon_detector_sv_crop_opponent_pokemons(context->detector_context);
-
-	const char *stream_path = obs_data_get_string(context->settings, "stream_path");
-	const char *stream_prefix = obs_data_get_string(context->settings, "stream_prefix");
-
-	for (int i = 0; i < 6; i++) {
-		char stream_format[512];
-		snprintf(stream_format, sizeof(stream_format), "%s-%d", stream_prefix, i + 1);
-		char *stream_filename = os_generate_formatted_filename("png", true, stream_format);
-		pokemon_detector_sv_export_opponent_pokemon_image(context->detector_context, i, stream_path, stream_filename);
-		bfree(stream_filename);
-	}
-
-	const char *log_path = obs_data_get_string(context->settings, "log_path");
-	const char *log_prefix = obs_data_get_string(context->settings, "log_prefix");
-	for (int i = 0; i < 6; i++) {
-		char log_format[512];
-		snprintf(log_format, sizeof(log_format), "%s-%d", log_prefix, i + 1);
-		char *log_filename = os_generate_formatted_filename("png", true, log_format);
-		pokemon_detector_sv_export_opponent_pokemon_image(context->detector_context, i, log_path, log_filename);
-		bfree(log_filename);
-	}
-	blog(LOG_INFO, "hotkey9");
-	return;
+	pokemon_detector_sv_load_screen(context->detector_context, context->video_data);
+	context->started = true;
 }
 
 static const char *filter_get_name(void *unused)
@@ -144,11 +109,22 @@ static void *filter_create(obs_data_t *settings, obs_source_t *source)
     context->recognize_hotkey_id = OBS_INVALID_HOTKEY_PAIR_ID;
 
 	context->texrender = gs_texrender_create(GS_BGRA, GS_ZS_NONE);
-	
+	context->stagesurface = NULL;
+	context->video_data = NULL;
+
 	context->detector_context = pokemon_detector_sv_create(pokemon_detector_sv_default_config);
 
 	context->settings = settings;
+
+	obs_add_main_render_callback(filter_main_render_callback, context);
+
 	return context;
+}
+
+static void filter_destroy(void *data) {
+	struct filter_context *context = data;
+	obs_remove_main_render_callback(filter_main_render_callback, context);
+	bfree(context);
 }
 
 static void filter_video_tick(void *data, float seconds) {
@@ -160,13 +136,44 @@ static void filter_video_tick(void *data, float seconds) {
 		return;
 	}
 
-	if (context->recognize_hotkey_id == OBS_INVALID_HOTKEY_PAIR_ID) {
-		context->recognize_hotkey_id = obs_hotkey_register_source(
-			parent,
-			"obs-pokemon-sv-plugin.recognize",
-			"Recognize Team",
-			recognize_hotkey,
-			context);
+	if (!context->started) return;
+
+	const enum pokemon_detector_sv_scene scene = pokemon_detector_sv_detect_scene(context->detector_context);
+	if (context->state == STATE_UNDEFINED) {
+		if (scene == POKEMON_DETECTOR_SV_SCENE_SELECT) {
+			context->state = STATE_ENTERING_SELECT;
+			context->last_state_change_ns = obs_get_video_frame_time();
+		}
+	} else if (context->state == STATE_ENTERING_SELECT) {
+		const uint64_t frame_time_ns = obs_get_video_frame_time();
+		if (frame_time_ns - context->last_state_change_ns > 1000000000) {
+			pokemon_detector_sv_crop_opponent_pokemons(context->detector_context);
+			const char *stream_path = obs_data_get_string(context->settings, "stream_path");
+			const char *stream_prefix = obs_data_get_string(context->settings, "stream_prefix");
+
+			for (int i = 0; i < 6; i++) {
+				char stream_format[512];
+				snprintf(stream_format, sizeof(stream_format), "%s-%d", stream_prefix, i + 1);
+				char *stream_filename = os_generate_formatted_filename("png", true, stream_format);
+				pokemon_detector_sv_export_opponent_pokemon_image(context->detector_context, i, stream_path, stream_filename);
+				bfree(stream_filename);
+			}
+
+			const char *log_path = obs_data_get_string(context->settings, "log_path");
+			const char *log_prefix = obs_data_get_string(context->settings, "log_prefix");
+			for (int i = 0; i < 6; i++) {
+				char log_format[512];
+				snprintf(log_format, sizeof(log_format), "%s-%d", log_prefix, i + 1);
+				char *log_filename = os_generate_formatted_filename("png", true, log_format);
+				pokemon_detector_sv_export_opponent_pokemon_image(context->detector_context, i, log_path, log_filename);
+				bfree(log_filename);
+			}
+			context->state = STATE_SELECT;
+		}
+	} else if (context->state == STATE_SELECT) {
+		if (scene == POKEMON_DETECTOR_SV_SCENE_UNDEFINED) {
+			context->state = STATE_UNDEFINED;
+		}
 	}
 }
 
@@ -217,6 +224,7 @@ struct obs_source_info filter_info = {
 	.output_flags = OBS_SOURCE_VIDEO,
 	.get_name = filter_get_name,
 	.create = filter_create,
+	.destroy = filter_destroy,
 	.video_render = filter_video_render,
 	.video_tick = filter_video_tick,
 	.get_properties = filter_properties,
