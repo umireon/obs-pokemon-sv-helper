@@ -86,11 +86,11 @@ static void filter_main_render_callback(void *data, uint32_t cx, uint32_t cy) {
 		context->width = width;
 		context->height = height;
 	}
+
 	gs_stage_texture(context->stagesurface, gs_texrender_get_texture(context->texrender));
 	uint8_t *stagesurface_data;
 	uint32_t linesize;
 	if (!gs_stagesurface_map(context->stagesurface, &stagesurface_data, &linesize)) return;
-	blog(LOG_INFO, "%d %d\n", width, height);
 	if (stagesurface_data && linesize) {
 		if (width * 4 == linesize) {
 			memcpy(context->video_data, stagesurface_data, width * height * 4);
@@ -177,6 +177,7 @@ static void filter_video_tick(void *data, float seconds) {
 	if (!context->started) return;
 
 	const enum pokemon_detector_sv_scene scene = pokemon_detector_sv_detect_scene(context->detector_context);
+	blog(LOG_INFO, "%d %d\n", context->state, scene);
 	if (context->state == STATE_UNKNOWN) {
 		if (scene == POKEMON_DETECTOR_SV_SCENE_SELECT) {
 			context->state = STATE_ENTERING_SELECT;
