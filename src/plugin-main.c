@@ -24,7 +24,7 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 
 #include "plugin-macros.generated.h"
 
-#include <pokemon-detector-sv.h>
+#include "pokemon-detector-sv.h"
 
 #define N_POKEMONS 6
 
