@@ -21,7 +21,6 @@ string(REPLACE ";" "$<SEMICOLON>" CMAKE_OSX_ARCHITECTURES_ "${CMAKE_OSX_ARCHITEC
 ExternalProject_Add(
   p
   URL https://github.com/umireon/pokemon-detector-sv/archive/refs/heads/main.zip
-  CMAKE_GENERATOR Ninja
   BUILD_ALWAYS ON
   BUILD_BYPRODUCTS
     <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}pokemon-detector-sv${CMAKE_STATIC_LIBRARY_SUFFIX}
