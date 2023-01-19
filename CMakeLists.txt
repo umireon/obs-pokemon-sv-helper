@@ -21,13 +21,13 @@ ExternalProject_Add(
   CMAKE_GENERATOR Ninja
   BUILD_ALWAYS ON
   BUILD_BYPRODUCTS
-    <INSTALL_DIR>/lib/libpokemon-detector-sv.a
-    <INSTALL_DIR>/lib/libopencv_core.a
-    <INSTALL_DIR>/lib/libopencv_features2d.a
-    <INSTALL_DIR>/lib/libopencv_imgcodecs.a
-    <INSTALL_DIR>/lib/libopencv_imgproc.a
-    <INSTALL_DIR>/lib/liblibpng.a
-    <INSTALL_DIR>/lib/libzlib.a
+    <INSTALL_DIR>/lib/libpokemon-detector-sv${CMAKE_STATIC_LIBRARY_SUFFIX}
+    <INSTALL_DIR>/lib/libopencv_core${CMAKE_STATIC_LIBRARY_SUFFIX}
+    <INSTALL_DIR>/lib/libopencv_features2d${CMAKE_STATIC_LIBRARY_SUFFIX}
+    <INSTALL_DIR>/lib/libopencv_imgcodecs${CMAKE_STATIC_LIBRARY_SUFFIX}
+    <INSTALL_DIR>/lib/libopencv_imgproc${CMAKE_STATIC_LIBRARY_SUFFIX}
+    <INSTALL_DIR>/lib/liblibpng${CMAKE_STATIC_LIBRARY_SUFFIX}
+    <INSTALL_DIR>/lib/libzlib${CMAKE_STATIC_LIBRARY_SUFFIX}
     <INSTALL_DIR>/include
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
