@@ -16,7 +16,7 @@ set(LINUX_MAINTAINER_EMAIL "umireon@gmail.com")
 # e.g. in Xcode or Visual Studio
 include(ExternalProject)
 ExternalProject_Add(
-  pokemon-detector-sv-download
+  p
   URL https://github.com/umireon/pokemon-detector-sv/archive/refs/heads/main.zip
   CMAKE_GENERATOR Ninja
   BUILD_ALWAYS ON
@@ -31,7 +31,7 @@ ExternalProject_Add(
     <INSTALL_DIR>/include
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
-ExternalProject_Get_Property(pokemon-detector-sv-download INSTALL_DIR)
+ExternalProject_Get_Property(p INSTALL_DIR)
 add_library(pokemon-detector-sv STATIC IMPORTED)
 add_dependencies(pokemon-detector-sv pokemon-detector-sv-download)
 set_target_properties(pokemon-detector-sv PROPERTIES IMPORTED_LOCATION
