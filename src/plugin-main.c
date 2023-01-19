@@ -360,16 +360,14 @@ static void filter_video_tick(void *data, float seconds)
 			context->state = STATE_ENTERING_RESULT;
 			blog(LOG_INFO, "MATCH to ENTERING_RESULT");
 		}
-	} else if (context->state == STATE_ENTERING_RESULT) {
+	} else if (context->state == STATE_RESULT) {
 		uint64_t now = os_gettime_ns();
 		if (now - context->match_end_ns > 2000000000) {
-			context->state = STATE_RESULT;
+			context->state = STATE_UNKNOWN;
+			blog(LOG_INFO, "RESULT to STATE_UNKNOWN");
 		} else if (scene == POKEMON_DETECTOR_SV_SCENE_SELECT_POKEMON) {
 			context->state = STATE_ENTERING_SELECT_POKEMON;
 		}
-	} else if (context->state == STATE_RESULT) {
-		obs_frontend_take_source_screenshot(parent);
-		context->state = STATE_UNKNOWN;
 	}
 	context->prev_scene = scene;
 }
