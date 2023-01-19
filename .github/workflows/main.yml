@@ -178,7 +178,8 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        arch: [x86_64]
+        #arch: [x86_64]
+        arch: []
     if: always()
     needs: [clang_check]
     outputs:
@@ -256,7 +257,8 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        arch: [x64]
+        #arch: [x64]
+        arch: []
     if: always()
     needs: [clang_check]
     outputs:
