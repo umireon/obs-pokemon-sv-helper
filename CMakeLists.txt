@@ -18,6 +18,7 @@ include(ExternalProject)
 ExternalProject_Add(pokemon-detector-sv-download
   URL https://github.com/umireon/pokemon-detector-sv/archive/refs/heads/main.zip
   CMAKE_GENERATOR Ninja
+  BUILD_ALWAYS ON
   BUILD_BYPRODUCTS
     <INSTALL_DIR>/lib/libpokemon-detector-sv.a
     <INSTALL_DIR>/include
@@ -36,6 +37,7 @@ target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
   pokemon-detector-sv
   ${INSTALL_DIR}/lib/liblibpng${CMAKE_STATIC_LIBRARY_SUFFIX}
   ${INSTALL_DIR}/lib/libopencv_core${CMAKE_STATIC_LIBRARY_SUFFIX}
+  ${INSTALL_DIR}/lib/libopencv_features2d${CMAKE_STATIC_LIBRARY_SUFFIX}
   ${INSTALL_DIR}/lib/libopencv_imgcodecs${CMAKE_STATIC_LIBRARY_SUFFIX}
   ${INSTALL_DIR}/lib/libopencv_imgproc${CMAKE_STATIC_LIBRARY_SUFFIX}
   ${INSTALL_DIR}/lib/libzlib${CMAKE_STATIC_LIBRARY_SUFFIX}
