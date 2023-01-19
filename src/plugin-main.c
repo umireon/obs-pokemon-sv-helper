@@ -55,7 +55,10 @@ struct filter_context {
 	uint64_t last_elapsed_seconds;
 	int selection_order_indexes[N_POKEMONS];
 	uint64_t match_end_ns;
+	int my_selection_order_map[N_POKEMONS];
 };
+
+static const char PATH_SEPARATOR = '/';
 
 static void filter_main_render_callback(void *data, uint32_t cx, uint32_t cy)
 {
@@ -122,7 +125,7 @@ static void filter_main_render_callback(void *data, uint32_t cx, uint32_t cy)
 	gs_stagesurface_unmap(context->stagesurface);
 
 	pokemon_detector_sv_load_screen(context->detector_context,
-					context->video_data);
+					context->video_data, width, height);
 	context->started = true;
 }
 
@@ -179,7 +182,7 @@ static void write_stream_files(struct filter_context *context)
 			 stream_prefix, i + 1);
 		char *stream_filename = os_generate_formatted_filename(
 			"png", true, stream_format);
-		pokemon_detector_sv_export_opponent_pokemon_image(
+		pokemon_detector_sv_opponent_pokemon_export_image(
 			context->detector_context, i, stream_path,
 			stream_filename);
 		bfree(stream_filename);
@@ -198,44 +201,48 @@ static void write_log_files(struct filter_context *context)
 			 i + 1);
 		char *log_filename =
 			os_generate_formatted_filename("png", true, log_format);
-		pokemon_detector_sv_export_opponent_pokemon_image(
+		pokemon_detector_sv_opponent_pokemon_export_image(
 			context->detector_context, i, log_path, log_filename);
 		bfree(log_filename);
 
 		const char *pokemon_id =
-			pokemon_detector_sv_recognize_opponent_pokemon(
+			pokemon_detector_sv_opponent_pokemon_recognize(
 				context->detector_context, i);
 		blog(LOG_INFO, "%s\n", pokemon_id);
 	}
 }
 
+static void flush_match_log(struct filter_context *context)
+{
+	const char ps = PATH_SEPARATOR;
+
+	const char *log_path =
+		obs_data_get_string(context->settings, "log_path");
+
+	char path[512];
+	snprintf(path, sizeof(path), "%s%cmatch_log.txt", log_path, ps);
+	pokemon_detector_sv_matchstate_append(context->detector_context, path);
+	pokemon_detector_sv_matchstate_clear(context->detector_context);
+}
+
 static bool selection_order_detect_change(struct filter_context *context)
 {
-	pokemon_detector_sv_selection_order_crop(context->detector_context);
-
-	int pokemons_by_order[N_POKEMONS];
-	for (int i = 0; i < N_POKEMONS; i++) {
-		pokemons_by_order[i] = -1;
-	}
-	for (int i = 0; i < N_POKEMONS; i++) {
-		int index = context->selection_order_indexes[i];
-		if (index != -1) {
-			pokemons_by_order[index - 1] = i;
-		}
-	}
+	pokemon_detector_sv_my_selection_order_crop(context->detector_context);
 
 	int orders[N_POKEMONS];
 	bool change_detected = false;
 	for (int i = 0; i < N_POKEMONS; i++) {
-		orders[i] = pokemon_detector_sv_selection_order_recognize(
+		orders[i] = pokemon_detector_sv_my_selection_order_recognize(
 			context->detector_context, i);
-		if (orders[i] != -1 && pokemons_by_order[orders[i] - 1] != i) {
+		if (orders[i] > 0 &&
+		    context->my_selection_order_map[orders[i] - 1] != i) {
+			context->my_selection_order_map[orders[i] - 1] = i;
 			change_detected = true;
 		}
-		context->selection_order_indexes[i] = orders[i];
 	}
 	if (change_detected) {
-		blog(LOG_INFO, "a: %d %d %d %d %d %d\n", orders[0], orders[1], orders[2], orders[3], orders[4], orders[5]);
+		blog(LOG_INFO, "a: %d %d %d %d %d %d\n", orders[0], orders[1],
+		     orders[2], orders[3], orders[4], orders[5]);
 	}
 	return change_detected;
 }
@@ -258,8 +265,9 @@ static void export_selection_order_image(struct filter_context *context)
 			 filename);
 		bfree(filename);
 
-		pokemon_detector_sv_selection_order_export(
-			context->detector_context, i, filepath, false);
+		pokemon_detector_sv_my_selection_order_export_image(
+			context->detector_context, i, filepath,
+			context->selection_order_indexes[i] == -1);
 	}
 }
 
@@ -311,12 +319,13 @@ static void filter_video_tick(void *data, float seconds)
 		const uint64_t frame_time_ns = obs_get_video_frame_time();
 		if (frame_time_ns - context->last_state_change_ns >
 		    1000000000) {
-			pokemon_detector_sv_crop_opponent_pokemons(
+			pokemon_detector_sv_opponent_pokemon_crop(
 				context->detector_context);
 			write_stream_files(context);
 			write_log_files(context);
 			context->state = STATE_SELECT_POKEMON;
-			blog(LOG_INFO, "State: ENTERING_SELECT to SELECT_POKEMON");
+			blog(LOG_INFO,
+			     "State: ENTERING_SELECT to SELECT_POKEMON");
 		}
 	} else if (context->state == STATE_SELECT_POKEMON) {
 		if (selection_order_detect_change(context)) {
@@ -325,7 +334,8 @@ static void filter_video_tick(void *data, float seconds)
 
 		if (scene == POKEMON_DETECTOR_SV_SCENE_BLACK_TRANSITION) {
 			context->state = STATE_ENTERING_MATCH;
-			blog(LOG_INFO, "State: SELECT_POKEMON to ENTERING_MATCH");
+			blog(LOG_INFO,
+			     "State: SELECT_POKEMON to ENTERING_MATCH");
 		}
 	} else if (context->state == STATE_ENTERING_MATCH) {
 		if (context->prev_scene !=
@@ -336,7 +346,8 @@ static void filter_video_tick(void *data, float seconds)
 			blog(LOG_INFO, "State: ENTERING_MATCH to MATCH");
 		} else if (scene == POKEMON_DETECTOR_SV_SCENE_SELECT_POKEMON) {
 			context->state = STATE_SELECT_POKEMON;
-			blog(LOG_INFO, "State: ENTERING_MATCH to SELECT_POKEMON");
+			blog(LOG_INFO,
+			     "State: ENTERING_MATCH to SELECT_POKEMON");
 		}
 	} else if (context->state == STATE_MATCH) {
 		const char *timer_name =
@@ -351,22 +362,29 @@ static void filter_video_tick(void *data, float seconds)
 
 		if (scene == POKEMON_DETECTOR_SV_SCENE_SELECT_POKEMON) {
 			context->state = STATE_ENTERING_SELECT_POKEMON;
-			blog(LOG_INFO, "State: MATCH to ENTERING_SELECT_POKEMON");
+			blog(LOG_INFO,
+			     "State: MATCH to ENTERING_SELECT_POKEMON");
 		} else if (context->prev_scene !=
 				   POKEMON_DETECTOR_SV_SCENE_BLACK_TRANSITION &&
 			   scene ==
 				   POKEMON_DETECTOR_SV_SCENE_BLACK_TRANSITION) {
 			context->match_end_ns = os_gettime_ns();
-			context->state = STATE_ENTERING_RESULT;
-			blog(LOG_INFO, "MATCH to ENTERING_RESULT");
+			context->state = STATE_RESULT;
+			blog(LOG_INFO, "MATCH to RESULT");
 		}
 	} else if (context->state == STATE_RESULT) {
 		uint64_t now = os_gettime_ns();
 		if (now - context->match_end_ns > 2000000000) {
+			pokemon_detector_sv_result_crop(context->detector_context);
+			enum pokemon_detector_sv_result result = pokemon_detector_sv_result_recognize(context->detector_context);
+			blog("Match result: %d", result);
+			flush_match_log(context);
 			context->state = STATE_UNKNOWN;
-			blog(LOG_INFO, "RESULT to STATE_UNKNOWN");
+			blog(LOG_INFO, "RESULT to UNKNOWN");
 		} else if (scene == POKEMON_DETECTOR_SV_SCENE_SELECT_POKEMON) {
+			flush_match_log(context);
 			context->state = STATE_ENTERING_SELECT_POKEMON;
+			blog(LOG_INFO, "MATCH to ENTERING_SELECT_POKEMON");
 		}
 	}
 	context->prev_scene = scene;
@@ -432,8 +450,6 @@ static const char *get_frontend_record_path(config_t *config)
 		       : config_get_string(config, "SimpleOutput", "FilePath");
 }
 
-static const char PATH_SEPARATOR = '/';
-
 static void filter_defaults(obs_data_t *settings)
 {
 	const char ps = PATH_SEPARATOR;
@@ -441,7 +457,8 @@ static void filter_defaults(obs_data_t *settings)
 	config_t *config = obs_frontend_get_profile_config();
 	const char *record_path = get_frontend_record_path(config);
 	char stream_path[512];
-	snprintf(stream_path, sizeof(stream_path), "%s%cstream", record_path, ps);
+	snprintf(stream_path, sizeof(stream_path), "%s%cstream", record_path,
+		 ps);
 	obs_data_set_default_string(settings, "stream_path", stream_path);
 	obs_data_set_default_string(settings, "stream_prefix",
 				    "OpponentPokemon");
