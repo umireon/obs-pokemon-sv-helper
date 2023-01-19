@@ -43,14 +43,15 @@ include_directories(${INSTALL_DIR}/include)
 include_directories()
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}
-  PRIVATE stdc++
-          pokemon-detector-sv
-          ${INSTALL_DIR}/lib/liblibpng${CMAKE_STATIC_LIBRARY_SUFFIX}
-          ${INSTALL_DIR}/lib/libopencv_core${CMAKE_STATIC_LIBRARY_SUFFIX}
-          ${INSTALL_DIR}/lib/libopencv_features2d${CMAKE_STATIC_LIBRARY_SUFFIX}
-          ${INSTALL_DIR}/lib/libopencv_imgcodecs${CMAKE_STATIC_LIBRARY_SUFFIX}
-          ${INSTALL_DIR}/lib/libopencv_imgproc${CMAKE_STATIC_LIBRARY_SUFFIX}
-          ${INSTALL_DIR}/lib/libzlib${CMAKE_STATIC_LIBRARY_SUFFIX})
+  PRIVATE
+    stdc++
+    pokemon-detector-sv
+    ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}libpng${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_core${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_features2d${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_imgcodecs${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_imgproc${CMAKE_STATIC_LIBRARY_SUFFIX}
+    ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}zlib${CMAKE_STATIC_LIBRARY_SUFFIX})
 if(APPLE)
   target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "-framework Accelerate")
 endif(APPLE)
