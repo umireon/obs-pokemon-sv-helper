@@ -16,6 +16,8 @@ You should have received a copy of the GNU General Public License along
 with this program. If not, see <https://www.gnu.org/licenses/>
 */
 
+#include <inttypes.h>
+
 #include <obs-module.h>
 #include <util/config-file.h>
 #include <util/platform.h>
@@ -289,7 +291,8 @@ static uint64_t update_timer_text(obs_source_t *timer_source,
 	uint64_t seconds = remaining_seconds % 60;
 
 	char time_str[512];
-	snprintf(time_str, sizeof(time_str), "%02lu:%02lu", minutes, seconds);
+	snprintf(time_str, sizeof(time_str), "%02" PRIu64 ":%02" PRIu64,
+		 minutes, seconds);
 
 	obs_data_t *settings = obs_data_create();
 	obs_data_set_string(settings, "text", time_str);
