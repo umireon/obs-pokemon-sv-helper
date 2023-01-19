@@ -56,6 +56,7 @@ struct filter_context {
 	int selection_order_indexes[N_POKEMONS];
 	uint64_t match_end_ns;
 	int my_selection_order_map[N_POKEMONS];
+	struct pokemon_detector_sv_matchstate matchstate;
 };
 
 static const char PATH_SEPARATOR = '/';
@@ -208,6 +209,7 @@ static void write_log_files(struct filter_context *context)
 		const char *pokemon_id =
 			pokemon_detector_sv_opponent_pokemon_recognize(
 				context->detector_context, i);
+		context->matchstate.opponent_pokemon_ids[i] = pokemon_id;
 		blog(LOG_INFO, "%s\n", pokemon_id);
 	}
 }
@@ -221,8 +223,9 @@ static void flush_match_log(struct filter_context *context)
 
 	char path[512];
 	snprintf(path, sizeof(path), "%s%cmatch_log.txt", log_path, ps);
-	pokemon_detector_sv_matchstate_append(context->detector_context, path);
-	pokemon_detector_sv_matchstate_clear(context->detector_context);
+	pokemon_detector_sv_matchstate_append(&context->matchstate, path);
+	struct pokemon_detector_sv_matchstate empty_matchstate = {};
+	context->matchstate = empty_matchstate;
 }
 
 static bool selection_order_detect_change(struct filter_context *context)
@@ -241,8 +244,11 @@ static bool selection_order_detect_change(struct filter_context *context)
 		}
 	}
 	if (change_detected) {
-		blog(LOG_INFO, "a: %d %d %d %d %d %d\n", orders[0], orders[1],
-		     orders[2], orders[3], orders[4], orders[5]);
+		blog(LOG_INFO, "My order: %d %d %d %d %d %d\n", orders[0],
+		     orders[1], orders[2], orders[3], orders[4], orders[5]);
+		for (int i = 0; i < N_POKEMONS; i++) {
+			context->matchstate.my_selection_order[i] = orders[i];
+		}
 	}
 	return change_detected;
 }
@@ -267,7 +273,7 @@ static void export_selection_order_image(struct filter_context *context)
 
 		pokemon_detector_sv_my_selection_order_export_image(
 			context->detector_context, i, filepath,
-			context->selection_order_indexes[i] == -1);
+			context->matchstate.my_selection_order[i] == -1);
 	}
 }
 
@@ -375,9 +381,12 @@ static void filter_video_tick(void *data, float seconds)
 	} else if (context->state == STATE_RESULT) {
 		uint64_t now = os_gettime_ns();
 		if (now - context->match_end_ns > 2000000000) {
-			pokemon_detector_sv_result_crop(context->detector_context);
-			enum pokemon_detector_sv_result result = pokemon_detector_sv_result_recognize(context->detector_context);
-			blog("Match result: %d", result);
+			obs_frontend_take_source_screenshot(parent);
+			pokemon_detector_sv_result_crop(
+				context->detector_context);
+			context->matchstate.result =
+				pokemon_detector_sv_result_recognize(
+					context->detector_context);
 			flush_match_log(context);
 			context->state = STATE_UNKNOWN;
 			blog(LOG_INFO, "RESULT to UNKNOWN");
