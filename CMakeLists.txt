@@ -16,10 +16,6 @@ set(LINUX_MAINTAINER_EMAIL "umireon@gmail.com")
 # e.g. in Xcode or Visual Studio
 include(ExternalProject)
 
-if(APPLE)
-  set(apple_args -DCMAKE_OSX_ARCHITECTURES="${CMAKE_OSX_ARCHITECTURES}")
-endif(APPLE)
-
 ExternalProject_Add(
   p
   URL https://github.com/umireon/pokemon-detector-sv/archive/refs/heads/main.zip
@@ -36,7 +32,7 @@ ExternalProject_Add(
     <INSTALL_DIR>/include/
     <INSTALL_DIR>/include/pokemon-detector-sv.h
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-             ${apple_args})
+             -DCMAKE_OSX_ARCHITECTURES="${CMAKE_OSX_ARCHITECTURES}")
 
 ExternalProject_Get_Property(p INSTALL_DIR)
 add_library(pokemon-detector-sv STATIC IMPORTED)
