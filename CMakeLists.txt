@@ -35,9 +35,8 @@ ExternalProject_Add(
     <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}zlib${CMAKE_STATIC_LIBRARY_SUFFIX}
     <INSTALL_DIR>/include/
     <INSTALL_DIR>/include/pokemon-detector-sv.h
-  CMAKE_ARGS
-    -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-    ${apple_args})
+  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+             ${apple_args})
 
 ExternalProject_Get_Property(p INSTALL_DIR)
 add_library(pokemon-detector-sv STATIC IMPORTED)
