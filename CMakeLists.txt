@@ -21,22 +21,26 @@ ExternalProject_Add(
   CMAKE_GENERATOR Ninja
   BUILD_ALWAYS ON
   BUILD_BYPRODUCTS
-    <INSTALL_DIR>/lib/libpokemon-detector-sv${CMAKE_STATIC_LIBRARY_SUFFIX}
-    <INSTALL_DIR>/lib/libopencv_core${CMAKE_STATIC_LIBRARY_SUFFIX}
-    <INSTALL_DIR>/lib/libopencv_features2d${CMAKE_STATIC_LIBRARY_SUFFIX}
-    <INSTALL_DIR>/lib/libopencv_imgcodecs${CMAKE_STATIC_LIBRARY_SUFFIX}
-    <INSTALL_DIR>/lib/libopencv_imgproc${CMAKE_STATIC_LIBRARY_SUFFIX}
-    <INSTALL_DIR>/lib/liblibpng${CMAKE_STATIC_LIBRARY_SUFFIX}
-    <INSTALL_DIR>/lib/libzlib${CMAKE_STATIC_LIBRARY_SUFFIX}
+    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}pokemon-detector-sv${CMAKE_STATIC_LIBRARY_SUFFIX}
+    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_core${CMAKE_STATIC_LIBRARY_SUFFIX}
+    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_features2d${CMAKE_STATIC_LIBRARY_SUFFIX}
+    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_imgcodecs${CMAKE_STATIC_LIBRARY_SUFFIX}
+    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_imgproc${CMAKE_STATIC_LIBRARY_SUFFIX}
+    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}libpng${CMAKE_STATIC_LIBRARY_SUFFIX}
+    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}zlib${CMAKE_STATIC_LIBRARY_SUFFIX}
+    <INSTALL_DIR>/include/
     <INSTALL_DIR>/include/pokemon-detector-sv.h
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR> -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
 
 ExternalProject_Get_Property(p INSTALL_DIR)
 add_library(pokemon-detector-sv STATIC IMPORTED)
-add_dependencies(pokemon-detector-sv pokemon-detector-sv-download)
-set_target_properties(pokemon-detector-sv PROPERTIES IMPORTED_LOCATION
-                                                     ${INSTALL_DIR}/lib/libpokemon-detector-sv.a)
+add_dependencies(pokemon-detector-sv p)
+set_target_properties(
+  pokemon-detector-sv
+  PROPERTIES IMPORTED_LOCATION
+             ${INSTALL_DIR}/lib/libpokemon-detector-sv${CMAKE_STATIC_LIBRARY_SUFFIX})
 include_directories(${INSTALL_DIR}/include)
+include_directories()
 target_link_libraries(
   ${CMAKE_PROJECT_NAME}
   PRIVATE stdc++
