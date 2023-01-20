@@ -175,6 +175,7 @@ static void filter_destroy(void *data)
 
 static void write_stream_files(struct filter_context *context)
 {
+	const char ps = PATH_SEPARATOR;
 	const char *stream_path =
 		obs_data_get_string(context->settings, "stream_path");
 	const char *stream_prefix =
@@ -185,15 +186,18 @@ static void write_stream_files(struct filter_context *context)
 			 stream_prefix, i + 1);
 		char *stream_filename = os_generate_formatted_filename(
 			"png", true, stream_format);
+		char path[512];
+		snprintf(path, sizeof(path), "%s%c%s", stream_path, ps,
+			 stream_filename);
 		pokemon_detector_sv_opponent_pokemon_export_image(
-			context->detector_context, i, stream_path,
-			stream_filename);
+			context->detector_context, i, path);
 		bfree(stream_filename);
 	}
 }
 
 static void write_log_files(struct filter_context *context)
 {
+	const char ps = PATH_SEPARATOR;
 	const char *log_path =
 		obs_data_get_string(context->settings, "log_path");
 	const char *log_prefix =
@@ -204,8 +208,11 @@ static void write_log_files(struct filter_context *context)
 			 i + 1);
 		char *log_filename =
 			os_generate_formatted_filename("png", true, log_format);
+		char path[512];
+		snprintf(path, sizeof(path), "%s%c%s", log_path, ps,
+			 log_filename);
 		pokemon_detector_sv_opponent_pokemon_export_image(
-			context->detector_context, i, log_path, log_filename);
+			context->detector_context, i, path);
 		bfree(log_filename);
 
 		const char *pokemon_id =
@@ -478,7 +485,7 @@ static void filter_defaults(obs_data_t *settings)
 
 	char log_path[512];
 	snprintf(log_path, sizeof(log_path), "%s%clog", record_path, ps);
-	obs_data_set_default_string(settings, "log_path", record_path);
+	obs_data_set_default_string(settings, "log_path", log_path);
 	obs_data_set_default_string(settings, "log_prefix",
 				    config_get_string(config, "Output",
 						      "FilenameFormatting"));
