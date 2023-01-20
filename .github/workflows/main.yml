@@ -17,7 +17,7 @@ on:
       - main
 
 env:
-  PLUGIN_NAME: 'obs-pokemon-sv-plugin'
+  PLUGIN_NAME: 'obs-pokemon-sv-helper'
 
 jobs:
   clang_check:
