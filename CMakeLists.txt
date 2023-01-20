@@ -42,8 +42,10 @@ add_library(pokemon-detector-sv STATIC IMPORTED)
 add_dependencies(pokemon-detector-sv p)
 set_target_properties(
   pokemon-detector-sv
-  PROPERTIES IMPORTED_LOCATION
-             ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}pokemon-detector-sv${CMAKE_STATIC_LIBRARY_SUFFIX})
+  PROPERTIES
+    IMPORTED_LOCATION
+    ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}pokemon-detector-sv${CMAKE_STATIC_LIBRARY_SUFFIX}
+)
 include_directories(${INSTALL_DIR}/include)
 include_directories()
 if(MSVC)
