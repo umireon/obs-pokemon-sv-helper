@@ -19,60 +19,10 @@ include(ExternalProject)
 
 string(REPLACE ";" "$<SEMICOLON>" CMAKE_OSX_ARCHITECTURES_ "${CMAKE_OSX_ARCHITECTURES}")
 
-ExternalProject_Add(
-  p
-  URL https://github.com/umireon/pokemon-detector-sv/archive/refs/tags/v0.1.1.tar.gz
-  BUILD_BYPRODUCTS
-    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}pokemon-detector-sv${CMAKE_STATIC_LIBRARY_SUFFIX}
-    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_core${CMAKE_STATIC_LIBRARY_SUFFIX}
-    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_features2d${CMAKE_STATIC_LIBRARY_SUFFIX}
-    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_imgcodecs${CMAKE_STATIC_LIBRARY_SUFFIX}
-    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_imgproc${CMAKE_STATIC_LIBRARY_SUFFIX}
-    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}libpng${CMAKE_STATIC_LIBRARY_SUFFIX}
-    <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}zlib${CMAKE_STATIC_LIBRARY_SUFFIX}
-    <INSTALL_DIR>/include/
-    <INSTALL_DIR>/include/pokemon-detector-sv.h
-  CMAKE_GENERATOR ${CMAKE_GENERATOR}
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-             -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-             -DCMAKE_OSX_ARCHITECTURES=${CMAKE_OSX_ARCHITECTURES_}
-             -DCMAKE_GENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}
-             -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
-
-ExternalProject_Get_Property(p INSTALL_DIR)
-add_library(pokemon-detector-sv STATIC IMPORTED)
-add_dependencies(pokemon-detector-sv p)
-set_target_properties(
-  pokemon-detector-sv
-  PROPERTIES
-    IMPORTED_LOCATION
-    ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}pokemon-detector-sv${CMAKE_STATIC_LIBRARY_SUFFIX}
-)
-include_directories(${INSTALL_DIR}/include)
-include_directories()
 if(MSVC)
-  target_link_libraries(
-    ${CMAKE_PROJECT_NAME}
-    PRIVATE
-      pokemon-detector-sv
-      ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}libpng${CMAKE_STATIC_LIBRARY_SUFFIX}
-      ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_core470${CMAKE_STATIC_LIBRARY_SUFFIX}
-      ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_features2d470${CMAKE_STATIC_LIBRARY_SUFFIX}
-      ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_imgcodecs470${CMAKE_STATIC_LIBRARY_SUFFIX}
-      ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_imgproc470${CMAKE_STATIC_LIBRARY_SUFFIX}
-      ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}zlib${CMAKE_STATIC_LIBRARY_SUFFIX})
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE libpokemon-detector-sv OpenCV)
 else(MSVC)
-  target_link_libraries(
-    ${CMAKE_PROJECT_NAME}
-    PRIVATE
-      stdc++
-      pokemon-detector-sv
-      ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}libpng${CMAKE_STATIC_LIBRARY_SUFFIX}
-      ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_core${CMAKE_STATIC_LIBRARY_SUFFIX}
-      ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_features2d${CMAKE_STATIC_LIBRARY_SUFFIX}
-      ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_imgcodecs${CMAKE_STATIC_LIBRARY_SUFFIX}
-      ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_imgproc${CMAKE_STATIC_LIBRARY_SUFFIX}
-      ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}zlib${CMAKE_STATIC_LIBRARY_SUFFIX})
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE libpokemon-detector-sv OpenCV stdc++)
 endif(MSVC)
 if(APPLE)
   target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "-framework Accelerate")
