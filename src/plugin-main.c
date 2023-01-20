@@ -226,7 +226,8 @@ static void flush_match_log(struct filter_context *context)
 	char path[512];
 	snprintf(path, sizeof(path), "%s%cmatch_log.txt", log_path, ps);
 	pokemon_detector_sv_matchstate_append(&context->matchstate, path);
-	struct pokemon_detector_sv_matchstate empty_matchstate = {};
+	struct pokemon_detector_sv_matchstate empty_matchstate;
+	memset(&empty_matchstate, 0, sizeof(empty_matchstate));
 	context->matchstate = empty_matchstate;
 }
 
