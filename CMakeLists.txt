@@ -15,6 +15,7 @@ set(LINUX_MAINTAINER_EMAIL "umireon@gmail.com")
 # Add your custom source files here - header files are optional and only required for visibility
 # e.g. in Xcode or Visual Studio
 add_subdirectory(vendor/pokemon-detector-sv)
+set_property(TARGET libpokemon-detector-sv PROPERTY POSITION_INDEPENDENT_CODE ON)
 include(ExternalProject)
 
 string(REPLACE ";" "$<SEMICOLON>" CMAKE_OSX_ARCHITECTURES_ "${CMAKE_OSX_ARCHITECTURES}")
