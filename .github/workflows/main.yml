@@ -312,7 +312,7 @@ jobs:
         with:
           workingDirectory: ${{ github.workspace }}/plugin
           target: ${{ matrix.arch }}
-          config: RelWithDebInfo
+          config: Release
           visualStudio: 'Visual Studio 17 2022'
 
       - name: Package Plugin
