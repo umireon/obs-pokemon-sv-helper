@@ -20,8 +20,7 @@ string(REPLACE ";" "$<SEMICOLON>" CMAKE_OSX_ARCHITECTURES_ "${CMAKE_OSX_ARCHITEC
 
 ExternalProject_Add(
   p
-  URL https://github.com/umireon/pokemon-detector-sv/archive/refs/heads/main.zip
-  BUILD_ALWAYS ON
+  URL https://github.com/umireon/pokemon-detector-sv/archive/refs/tags/0.1.0.tar.gz
   BUILD_BYPRODUCTS
     <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}pokemon-detector-sv${CMAKE_STATIC_LIBRARY_SUFFIX}
     <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_core${CMAKE_STATIC_LIBRARY_SUFFIX}
