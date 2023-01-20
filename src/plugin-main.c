@@ -485,7 +485,7 @@ static void filter_defaults(obs_data_t *settings)
 
 	char log_path[512];
 	snprintf(log_path, sizeof(log_path), "%s%clog", record_path, ps);
-	obs_data_set_default_string(settings, "log_path", record_path);
+	obs_data_set_default_string(settings, "log_path", log_path);
 	obs_data_set_default_string(settings, "log_prefix",
 				    config_get_string(config, "Output",
 						      "FilenameFormatting"));
