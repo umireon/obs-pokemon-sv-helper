@@ -1,0 +1,3 @@
+[submodule "vendor/pokemon-detector-sv"]
+	path = vendor/pokemon-detector-sv
+	url = https://github.com/umireon/pokemon-detector-sv.git
