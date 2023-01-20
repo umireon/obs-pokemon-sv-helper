@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16...3.21)
 
-project(obs-pokemon-sv-plugin VERSION 0.1.0)
+project(obs-pokemon-sv-plugin VERSION 0.1.4)
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 
 set(PLUGIN_AUTHOR "Kaito Udagawa")
@@ -20,7 +20,7 @@ string(REPLACE ";" "$<SEMICOLON>" CMAKE_OSX_ARCHITECTURES_ "${CMAKE_OSX_ARCHITEC
 
 ExternalProject_Add(
   p
-  URL https://github.com/umireon/pokemon-detector-sv/archive/refs/tags/0.1.0.tar.gz
+  URL https://github.com/umireon/pokemon-detector-sv/archive/refs/tags/v0.1.0.tar.gz
   BUILD_BYPRODUCTS
     <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}pokemon-detector-sv${CMAKE_STATIC_LIBRARY_SUFFIX}
     <INSTALL_DIR>/lib/${CMAKE_STATIC_LIBRARY_PREFIX}opencv_core${CMAKE_STATIC_LIBRARY_SUFFIX}
