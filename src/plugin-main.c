@@ -250,14 +250,14 @@ static bool selection_order_detect_change(struct filter_context *context)
 		orders[i] = pokemon_detector_sv_my_selection_order_recognize(
 			context->detector_context, i);
 		if (orders[i] > 0 &&
-		    context->my_selection_order_map[orders[i] - 1] != i) {
-			context->my_selection_order_map[orders[i] - 1] = i;
+		    context->my_selection_order_map[orders[i] - 1] != i + 1) {
+			context->my_selection_order_map[orders[i] - 1] = i + 1;
 			change_detected = true;
 		}
 	}
 	if (change_detected) {
-		blog(LOG_INFO, "My order: %d %d %d %d %d %d\n", orders[0],
-		     orders[1], orders[2], orders[3], orders[4], orders[5]);
+	blog(LOG_INFO, "My order: %d %d %d %d %d %d\n", orders[0],
+			orders[1], orders[2], orders[3], orders[4], orders[5]);
 		for (int i = 0; i < N_POKEMONS; i++) {
 			context->matchstate.my_selection_order[i] = orders[i];
 		}
@@ -285,7 +285,7 @@ static void export_selection_order_image(struct filter_context *context)
 
 		pokemon_detector_sv_my_selection_order_export_image(
 			context->detector_context, i, filepath,
-			context->matchstate.my_selection_order[i] == -1);
+			context->matchstate.my_selection_order[i] == 0);
 	}
 }
 
@@ -331,6 +331,9 @@ static void filter_video_tick(void *data, float seconds)
 		if (scene == POKEMON_DETECTOR_SV_SCENE_SELECT_POKEMON) {
 			context->state = STATE_ENTERING_SELECT_POKEMON;
 			context->last_state_change_ns = os_gettime_ns();
+			for (int i = 0; i < N_POKEMONS; i++) {
+				context->my_selection_order_map[i] = 0;
+			}
 			blog(LOG_INFO, "State: UNKNOWN to ENTERING_SELECT");
 		}
 	} else if (context->state == STATE_ENTERING_SELECT_POKEMON) {
@@ -376,6 +379,9 @@ static void filter_video_tick(void *data, float seconds)
 	} else if (context->state == STATE_CONFIRM_POKEMON) {
 		if (scene == POKEMON_DETECTOR_SV_SCENE_SELECT_POKEMON) {
 			context->state = STATE_SELECT_POKEMON;
+			for (int i = 0; i < N_POKEMONS; i++) {
+				context->my_selection_order_map[i] = 0;
+			}
 			blog(LOG_INFO,
 			     "State: CONFIRM_POKEMON to SELECT_POKEMON");
 		} else if (scene ==
@@ -393,6 +399,9 @@ static void filter_video_tick(void *data, float seconds)
 			blog(LOG_INFO, "State: ENTERING_MATCH to MATCH");
 		} else if (scene == POKEMON_DETECTOR_SV_SCENE_SELECT_POKEMON) {
 			context->state = STATE_SELECT_POKEMON;
+			for (int i = 0; i < N_POKEMONS; i++) {
+				context->my_selection_order_map[i] = 0;
+			}
 			blog(LOG_INFO,
 			     "State: ENTERING_MATCH to SELECT_POKEMON");
 		}
@@ -409,6 +418,9 @@ static void filter_video_tick(void *data, float seconds)
 
 		if (scene == POKEMON_DETECTOR_SV_SCENE_SELECT_POKEMON) {
 			context->state = STATE_ENTERING_SELECT_POKEMON;
+			for (int i = 0; i < N_POKEMONS; i++) {
+				context->my_selection_order_map[i] = 0;
+			}
 			blog(LOG_INFO,
 			     "State: MATCH to ENTERING_SELECT_POKEMON");
 		} else if (context->prev_scene !=
@@ -433,6 +445,9 @@ static void filter_video_tick(void *data, float seconds)
 			blog(LOG_INFO, "RESULT to UNKNOWN");
 		} else if (scene == POKEMON_DETECTOR_SV_SCENE_SELECT_POKEMON) {
 			flush_match_log(context);
+			for (int i = 0; i < N_POKEMONS; i++) {
+				context->my_selection_order_map[i] = 0;
+			}
 			context->state = STATE_ENTERING_SELECT_POKEMON;
 			blog(LOG_INFO, "MATCH to ENTERING_SELECT_POKEMON");
 		}
