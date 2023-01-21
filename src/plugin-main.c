@@ -34,6 +34,8 @@ enum filter_state {
 	STATE_UNKNOWN,
 	STATE_ENTERING_SELECT_POKEMON,
 	STATE_SELECT_POKEMON,
+	STATE_ENTERING_CONFIRM_POKEMON,
+	STATE_CONFIRM_POKEMON,
 	STATE_ENTERING_MATCH,
 	STATE_MATCH,
 	STATE_ENTERING_RESULT,
@@ -328,31 +330,59 @@ static void filter_video_tick(void *data, float seconds)
 	if (context->state == STATE_UNKNOWN) {
 		if (scene == POKEMON_DETECTOR_SV_SCENE_SELECT_POKEMON) {
 			context->state = STATE_ENTERING_SELECT_POKEMON;
-			context->last_state_change_ns =
-				obs_get_video_frame_time();
+			context->last_state_change_ns = os_gettime_ns();
 			blog(LOG_INFO, "State: UNKNOWN to ENTERING_SELECT");
 		}
 	} else if (context->state == STATE_ENTERING_SELECT_POKEMON) {
-		const uint64_t frame_time_ns = obs_get_video_frame_time();
-		if (frame_time_ns - context->last_state_change_ns >
-		    1000000000) {
+		const uint64_t now = os_gettime_ns();
+		if (now - context->last_state_change_ns > 1000000000) {
 			pokemon_detector_sv_opponent_pokemon_crop(
 				context->detector_context);
 			write_stream_files(context);
 			write_log_files(context);
 			context->state = STATE_SELECT_POKEMON;
 			blog(LOG_INFO,
-			     "State: ENTERING_SELECT to SELECT_POKEMON");
+			     "State: ENTERING_SELECT_POKEMON to SELECT_POKEMON");
 		}
 	} else if (context->state == STATE_SELECT_POKEMON) {
 		if (selection_order_detect_change(context)) {
 			export_selection_order_image(context);
 		}
 
-		if (scene == POKEMON_DETECTOR_SV_SCENE_BLACK_TRANSITION) {
+		if (scene == POKEMON_DETECTOR_SV_SCENE_UNDEFINED) {
+			context->last_state_change_ns = os_gettime_ns();
+			context->state = STATE_ENTERING_CONFIRM_POKEMON;
+			blog(LOG_INFO,
+			     "State: SELECT_POKEMON to ENTERING_CONFIRM_POKEMON");
+		} else if (scene ==
+			   POKEMON_DETECTOR_SV_SCENE_BLACK_TRANSITION) {
 			context->state = STATE_ENTERING_MATCH;
 			blog(LOG_INFO,
 			     "State: SELECT_POKEMON to ENTERING_MATCH");
+		}
+	} else if (context->state == STATE_ENTERING_CONFIRM_POKEMON) {
+		uint64_t now = os_gettime_ns();
+		if (now - context->last_state_change_ns > 500000000) {
+			obs_frontend_take_source_screenshot(parent);
+			context->state = STATE_CONFIRM_POKEMON;
+			blog(LOG_INFO,
+			     "State: ENTERING_CONFIRM_POKEMON to CONFIRM_POKEMON");
+		} else if (scene ==
+			   POKEMON_DETECTOR_SV_SCENE_BLACK_TRANSITION) {
+			context->state = STATE_ENTERING_MATCH;
+			blog(LOG_INFO,
+			     "State: LEAVE_SELECT_POKEMON to ENTERING_MATCH");
+		}
+	} else if (context->state == STATE_CONFIRM_POKEMON) {
+		if (scene == POKEMON_DETECTOR_SV_SCENE_SELECT_POKEMON) {
+			context->state = STATE_SELECT_POKEMON;
+			blog(LOG_INFO,
+			     "State: CONFIRM_POKEMON to SELECT_POKEMON");
+		} else if (scene ==
+			   POKEMON_DETECTOR_SV_SCENE_BLACK_TRANSITION) {
+			context->state = STATE_ENTERING_MATCH;
+			blog(LOG_INFO,
+			     "State: CONFIRM_POKEMON to ENTERING_MATCH");
 		}
 	} else if (context->state == STATE_ENTERING_MATCH) {
 		if (context->prev_scene !=
