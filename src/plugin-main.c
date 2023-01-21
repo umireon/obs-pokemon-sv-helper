@@ -256,8 +256,8 @@ static bool selection_order_detect_change(struct filter_context *context)
 		}
 	}
 	if (change_detected) {
-	blog(LOG_INFO, "My order: %d %d %d %d %d %d\n", orders[0],
-			orders[1], orders[2], orders[3], orders[4], orders[5]);
+		blog(LOG_INFO, "My order: %d %d %d %d %d %d\n", orders[0],
+		     orders[1], orders[2], orders[3], orders[4], orders[5]);
 		for (int i = 0; i < N_POKEMONS; i++) {
 			context->matchstate.my_selection_order[i] = orders[i];
 		}
