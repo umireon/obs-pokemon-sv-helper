@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16...3.21)
 
-project(obs-pokemon-sv-helper VERSION 0.1.13)
+project(obs-pokemon-sv-helper VERSION 0.1.14)
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 
 set(PLUGIN_AUTHOR "Kaito Udagawa")
